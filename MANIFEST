@@ -7,3 +7,4 @@ pagesjaunes
 t/00basic.t
 t/01interface.t
 t/02search.t
+META.yml                                 Module meta-data (added by MakeMaker)

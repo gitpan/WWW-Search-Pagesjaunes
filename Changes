@@ -1,3 +1,7 @@
+0.13 Thu Feb 24 10:23:28 CET 2005
+    - Fixed the HTML parsing to reflect the change in the layout of the
+      result table (patch thanks to Éric(glb)).
+
 0.12 Wed Jun 30 14:13:10 CEST 2004
     - fixed a bug when the main form was not found.
     - the main form is now filled within an eval() to avoid

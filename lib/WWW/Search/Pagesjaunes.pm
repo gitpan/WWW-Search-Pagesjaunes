@@ -7,7 +7,7 @@ use HTML::TokeParser;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.12';
+$WWW::Search::Pagesjaunes::VERSION = '0.13';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -132,17 +132,21 @@ sub results {
     # get the job done.
     #
     # <table class="fdcadreinscr">
-    #   <table class="fdinscr">
-    #     <tr class="fdrsinscr">
-    #       <td class="txtrsinscr">Name</td>
-    #       <td class="txtrsinscr" align=right>&nbsp;</td>
-    #     </tr>
-    #     <tr valign="top">
-    #       <td class="txtinscr">Address</td>
-    #       <td align="right" class=txtinscr nowrap>(télécopie)? Phone</td>
-    #     </tr>
-    #   </table>
-    # </table>
+    #   <tr>
+    #     <td>
+    #       <table class="fdinscr">
+    #         <tr class="fdrsinscr">
+    #           <td class="txtrsinscr">Name</td>
+    #           <td class="txtrsinscr" align=right>&nbsp;</td>
+    #         </tr>
+    #         <tr valign="top">
+    #           <td class="txtinscr">Address</td>
+    #           <td align="right" class=txtinscr nowrap>(télécopie)? Phone</td>
+    #         </tr>
+    #       </table>
+    #     </td>
+    #   </tr>
+    #  </table>
     #
     $self->{has_more} = 0;
 
@@ -150,21 +154,23 @@ sub results {
         next
           unless $token->[1]
           && $token->[1]{class}
-          && $token->[1]{class} eq 'fdcadreinscr';
+          && $token->[1]{class} eq 'fdinscr';
         {    # We're inside an entry table
 
             $parser->get_tag("td");    # The first <td> is the name
             my $name = _trim( $parser->get_trimmed_text('/td') );
 
-            $parser->get_tag("td");    # The second <td> is the address
+            $parser->get_tag("td");    # The second <td> is ignored
+
+            $parser->get_tag("td");    # The third <td> is the address
             my $address = _trim( $parser->get_trimmed_text('/td') );
             $address =~ s/\W*\|.*$//g;
 
-            $parser->get_tag("td");    # The third <td> is the phone number
+            $parser->get_tag("td");    # The fourth <td> is the phone number
             my $phone = _trim( $parser->get_trimmed_text('/td') );
             my @phones = map { _trim($_); s/\.(\s*\d)/$1/; $_ }  split(/§¤§/, $phone);
 
-            # The third <td> tag is either the mail or the descr, depending
+            # The fifth <td> tag is either the mail or the descr, depending
             # on the class
             my @emails = ('');
             my $tag = $parser->get_tag("td");

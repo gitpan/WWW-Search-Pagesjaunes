@@ -66,6 +66,7 @@ pagesjaunes [options ...]
     -departement -district  : Dept district or Region
 
     -useragent : String to be passed as User-Agent header
+                 (this may be needed to bypass user-agent detection)
     -fast      : Submit the request directly without querying the form
     
     -separator : Character used to separate the fields (default '\t')
