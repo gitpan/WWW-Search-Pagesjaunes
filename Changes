@@ -1,3 +1,8 @@
+0.12 Wed Jun 30 14:13:10 CEST 2004
+    - fixed a bug when the main form was not found.
+    - the main form is now filled within an eval() to avoid
+      HTML::Forms errors when trying to fill it.
+
 0.11 Thu Jun 17 12:00:27 CEST 2004
     - Added a '--fast' parameter to create the request from scratch (and
       not fetching the form from pagesjaunes.fr)

@@ -7,7 +7,7 @@ use HTML::TokeParser;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.11';
+$WWW::Search::Pagesjaunes::VERSION = '0.12';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -82,21 +82,23 @@ sub find {
 
         my @forms = HTML::Form->parse( $req->content, $self->{URL} );
 
-        #my $form = $opt{activite} ? $forms[1] : $forms[0];
-        my $form = $forms[0];
+        # BooK finds the form by grepping thru all of them, instead
+        # of limiting ourselves to the first and second form.
+        my ($form) = grep { $_->find_input('lang') } @forms;
 
-        {
+        eval {
             # HTML::Form complains when you change hidden fields values.
             local $^W;
             $form->value( 'lang', $self->{lang} );
-        }
-
-        $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
-        $form->value( 'FRM_NOM',      $opt{nom} );
-        $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
-        $form->value( 'FRM_ADRESSE',  $opt{adresse} );
-        $form->value( 'FRM_LOCALITE', $opt{localite} );
-        $form->value( 'FRM_DEPARTEMENT', $opt{departement} );
+            
+            $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
+            $form->value( 'FRM_NOM',      $opt{nom} );
+            $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
+            $form->value( 'FRM_ADRESSE',  $opt{adresse} );
+            $form->value( 'FRM_LOCALITE', $opt{localite} );
+            $form->value( 'FRM_DEPARTEMENT', $opt{departement} );
+        };
+        croak "Cannot fill the pagesjaunes request form. try with the 'fast' option\n" if $@;
 
         $self->{limit} = $opt{limit} || $self->{limit};
 
