@@ -6,7 +6,7 @@ use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.05';
+$WWW::Search::Pagesjaunes::VERSION = '0.06';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -105,8 +105,6 @@ sub results {
 
             $parser->get_tag("td");    # The first <td> is the name
             my $name = _trim( $parser->get_trimmed_text('/td') );
-
-            $parser->get_tag("td");    # The first <td> is the name
 
             $parser->get_tag("td");    # The second <td> is the address
             my $address = _trim( $parser->get_trimmed_text('/td') );
