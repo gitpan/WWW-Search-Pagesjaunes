@@ -1,3 +1,16 @@
+0.4 Thu Oct 24 23:26:04 CEST 2002
+    - No check on missing parameter is done in the .pm, it's up to the
+      script to check that.
+	- a Town *or* District is required (used to be only a Town)
+	- pagesjaunes.fr errors are reported if the entry set is empty
+    - Added a --quiet switch to avoid error reporting
+	- Added a --english switch to use the pagesjaunes.fr interface
+      in english (you can then use the english name of business
+      types 'plombier' => 'plumber')
+	- The Entry::entry method now returns an array. It is up to the 
+	  user to set the proper separator ($, and $\)
+	- Fixed the name truncation bug. 
+
 0.3 Tue Oct 15 13:11:09 CEST 2002
     - Fixed a bug that prevented limit() to work
     - Added a --limit switch on the pagesjaunes script

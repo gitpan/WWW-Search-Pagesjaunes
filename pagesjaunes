@@ -8,24 +8,39 @@ my %opt;
 GetOptions(
     \%opt,                    'activite|business|activity=s',
     'nom|name=s',             'prenom|firstname:s',
-    'adresse|address:s',      'localite|town=s',
-    'departement|district=s', 'limit:i',
+    'adresse|address:s',      'localite|ville|city|town=s',
+    'departement|district=s', 'limit:i', 'english', 'quiet',
     'help|aide',              'man',
     'version'
   )
   or pod2usage(2);
 
+# $form->value('input_image', $x) où $x est:
+# CD_PDR_SUP_REG           => Région entière
+# CD_PDR_SUP_DEP_REQ       => Département entier
+# CD_PDR_VOISIN_REQ        => Localités voisines
+# CD_PDR_INSCRIPTIONS_REQ  => Sans nom ni adresse
+# 
+# BT_INSCRIPTIONS_REQ_PROF => Afficher seulement les professionnels
+ 
 die "$WWW::Search::Pagesjaunes::VERSION\n" if $opt{version};
 
 pod2usage(1) if $opt{help};
 pod2usage( -verbose => 2 ) if $opt{man};
-pod2usage("$0: No town given.") unless $opt{localite};
+pod2usage("$0: No town or district given.") unless ($opt{localite} || $opt{departement});
 pod2usage("$0: No business or name given.")
   unless ( $opt{activite} || $opt{nom} );
 
-my $pj = WWW::Search::Pagesjaunes->new()->find(%opt);
+my $pj = WWW::Search::Pagesjaunes->new();
+
+$pj->{lang}  = 'EN' if $opt{english};
+$pj->{error} = 0    if $opt{quiet};
+
+$pj->find(%opt);
+
 do {
-    print $_->entry . "\n" foreach ( $pj->results );
+	local $\ = "\n";
+	print join(' - ', $_->entry) foreach ( $pj->results );
 } while $pj->has_more;
 
 __END__
@@ -46,6 +61,8 @@ pagesjaunes [options ...]
     -departement -district  : Dept district or Region
 
     -limit    : Maximum number of results returned
+    -english  : Use the pagesjaunes.fr english interface
+    -quiet    : Turn off error messages display
     -help     : Brief help message
     -man      : Full documentation
     -version  : Display version number
@@ -85,6 +102,16 @@ Department district or Region you're searching in.
 
 Maximum number of entries returned. Default is 50. If you set it to 0 or
 a negative number, it will return all the entries found.
+
+=item B<-english>
+
+Use the english interface of pagesjaunes.fr. This means that you can
+enter business types in english (i.e. 'plumber' instead of 'plombier'),
+and error messages will be displayed in english.
+
+=item B<-quiet>
+
+No error messages are printed when this switch is on
 
 =item B<-help>
 

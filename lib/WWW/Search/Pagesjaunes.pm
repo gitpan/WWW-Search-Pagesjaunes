@@ -1,11 +1,12 @@
 package WWW::Search::Pagesjaunes;
-
 use strict;
+#use Carp qw(carp);
+#use locale;
 use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.03';
+$WWW::Search::Pagesjaunes::VERSION = '0.04';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -22,6 +23,9 @@ sub new {
     $self->{ua}    = $ua;
     $self->{limit} = 50;
 
+    $self->{error} = 1;
+    $self->{lang}  = 'FR';
+
     bless( $self, $class );
 }
 
@@ -30,7 +34,6 @@ sub find {
     my %opt  = @_;
 
 	# Make the first request to pagesjaunes.fr
-    return undef unless $opt{localite} && ( $opt{activite} || $opt{nom} );
     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
 
     my $form = HTML::Form->parse(
@@ -39,6 +42,12 @@ sub find {
         $self->{URL}
     );
 
+	{
+		# HTML::Form complains when you change hidden fields values.
+		local $^W;
+    	$form->value( 'lang', $self->{lang} );
+	}
+	
     $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
     $form->value( 'FRM_NOM',      $opt{nom} );
     $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
@@ -58,6 +67,9 @@ sub results {
 
     my $result_page = $self->{ua}->request( $self->{req} )->content;
     my $parser      = HTML::TokeParser->new( \$result_page );
+
+    # All the <br> tags are transformed to whitespace
+	$parser->{textify} = { 'br' => sub() { " " } };
 
     my @results;
 
@@ -91,18 +103,14 @@ sub results {
         {    # We're inside an entry table
 
             $parser->get_tag("td");    # The first <td> is the name
-            my $name = $parser->get_trimmed_text('/td');
-            $name =~ s/^\W*|\W*$//g;
+            my $name = _trim( $parser->get_trimmed_text('/td') );
 
             $parser->get_tag("td");    # The second <td> is the address
-            my $address = $parser->get_trimmed_text('/td');
+            my $address = _trim( $parser->get_trimmed_text('/td') );
             $address =~ s/\W*\|.*$//;
-            $address =~ s/^\W*|\W*$//g;
 
             $parser->get_tag("td");    # The third <td> is the phone number
-            my $phone = $parser->get_trimmed_text('/td');
-            $phone =~ s/^\W*|\W*$//g;
-
+            my $phone = _trim( $parser->get_trimmed_text('/td') );
 
             push (
                 @results,
@@ -123,7 +131,26 @@ sub results {
             $self->{req}      = $form->click();
         }
     }
+
+	# If there was no result, we look for an error message in the HTML page
+	if ( !@results && $self->{error} ){
+    	$parser  = HTML::TokeParser->new( \$result_page );
+        while ( my $token = $parser->get_tag("font") ){
+        	next unless $token->[1]
+	                 && $token->[1]{color}
+ 	                 && $token->[1]{color} eq '#ff0000';
+			$parser->{textify} = { 'br' => sub() { " " } };
+			print STDERR  _trim($parser->get_trimmed_text('/font')) . "\n";
+		}
+	}
+
     wantarray ? @results : $results[0];
+}
+
+sub _trim {
+	$_[0] =~ s/\xa0/ /g; # Transform the &nbsp; into whitespace
+	$_[0] =~ s/^\s*|\s*$//g;
+	$_[0];
 }
 
 sub limit {
@@ -139,7 +166,7 @@ sub name    { $_[0]->[0] }
 sub address { $_[0]->[1] }
 sub phone   { $_[0]->[2] }
 sub is_fax  { $_[0]->[3] }
-sub entry   { join ( $_[1] || ' - ', @{ $_[0] }[ 0 .. 2 ] ) }
+sub entry   { @{ $_[0] }[ 0 .. 2 ] }
 
 1;
 
@@ -256,9 +283,10 @@ Returns the phone number of the entry.
 Returns true if the phone number is a fax one, false otherwise. Note
 that currently, this method always returns 0.
 
-=item entry
+=item entry($separator)
 
-Returns the concatenation of the name and the phone number, separated by " - ".
+Returns the concatenation of the name and the phone number, separated by
+" - ". You can specify your own separator as first argument.
 
 =back
 
@@ -266,8 +294,6 @@ Returns the concatenation of the name and the phone number, separated by " - ".
 
 The phone numbers are sometimes not correctly parsed, esp. when one
 entry has several phone numbers.
-
-Names are sometimes truncated.
 
 If you found a bug and want to report it or send a patch, you are
 encouraged to use the CPAN Request Tracker interface:
