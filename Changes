@@ -1,3 +1,10 @@
+0.7 Tue Dec  9 10:46:28 CET 2003
+    - Fixed the HTML parsing to reflect the changes in the
+      pagesjaunes.fr website. (Thanks to David Landgren)
+    - The form of pagesjaunes (not pagesblanches) is the second on on
+      the frame, not the first. (Thanks to Jon Orwant)
+    - Added a couple more tests 
+
 0.5 Sat Feb  8 13:03:05 CET 2003
     - Fixed the HTML parsing to reflect the changes in the
       pagesjaunes.fr website. (Thanks to Nicolas Chuche)

@@ -6,7 +6,7 @@ use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.06';
+$WWW::Search::Pagesjaunes::VERSION = '0.07';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -36,11 +36,13 @@ sub find {
 	# Make the first request to pagesjaunes.fr
     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
 
-    my $form = HTML::Form->parse(
+    my @forms = HTML::Form->parse(
         $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) )
           ->content,
         $self->{URL}
     );
+
+    my $form = $opt{activite} ? $forms[1] : $forms[0];
 
 	{
 		# HTML::Form complains when you change hidden fields values.
@@ -112,6 +114,7 @@ sub results {
 
             $parser->get_tag("td");    # The third <td> is the phone number
             my $phone = _trim( $parser->get_trimmed_text('/td') );
+            $phone =~ s/^\W(.*)$/$1/g;
 
             push (
                 @results,

@@ -10,7 +10,7 @@ GetOptions(
     'nom|name=s',             'prenom|firstname:s',
     'adresse|address:s',      'localite|ville|city|town=s',
     'departement|district=s', 'limit:i', 'english', 'quiet',
-    'help|aide',              'man',
+    'help|aide',              'man', 'separator|separateur=s',
     'version'
   )
   or pod2usage(2);
@@ -42,7 +42,7 @@ $pj->find(%opt);
 
 do {
 	local $\ = "\n";
-	print join(' - ', $_->entry) foreach ( $pj->results );
+	print join($opt{separator} || ' - ', $_->entry) foreach ( $pj->results );
 } while $pj->has_more;
 
 __END__
@@ -62,12 +62,13 @@ pagesjaunes [options ...]
     -localite    -town      : Town
     -departement -district  : Dept district or Region
 
-    -limit    : Maximum number of results returned
-    -english  : Use the pagesjaunes.fr english interface
-    -quiet    : Turn off error messages display
-    -help     : Brief help message
-    -man      : Full documentation
-    -version  : Display version number
+    -separator : Character used to separate the fields (default ' - ')
+    -limit     : Maximum number of results returned
+    -english   : Use the pagesjaunes.fr english interface
+    -quiet     : Turn off error messages display
+    -help      : Brief help message
+    -man       : Full documentation
+    -version   : Display version number
 
 You must provide the localite/town option, and either activite/business
 or nom/name option. The prenom/firstname option is ignored if the
