@@ -15,13 +15,15 @@ GetOptions(
   )
   or pod2usage(2);
 
+#
 # $form->value('input_image', $x) où $x est:
+# 
 # CD_PDR_SUP_REG           => Région entière
 # CD_PDR_SUP_DEP_REQ       => Département entier
 # CD_PDR_VOISIN_REQ        => Localités voisines
 # CD_PDR_INSCRIPTIONS_REQ  => Sans nom ni adresse
-# 
 # BT_INSCRIPTIONS_REQ_PROF => Afficher seulement les professionnels
+# 
  
 die "$WWW::Search::Pagesjaunes::VERSION\n" if $opt{version};
 
@@ -90,6 +92,10 @@ is done with a fuzzy match.
 First name of the person you're looking for. This option is ignored if
 the B<-activite> or B<-business> are set.
 
+=item B<-adresse> or B<-address>
+
+Address of the person you're searching for.
+
 =item B<-localite> or B<-town>
 
 Name of the town.
@@ -136,12 +142,13 @@ and the WWW::Search::Pagesjaunes module.
 =head1 COPYRIGHT
 
 Please read the Publisher information of L<http://www.pagesjaunes.fr>
-available at the following URL: L<http://www.pagesjaunes.fr/pj.cgi?html-=commun/avertissement.html&lang=en>
+available at the following URL:
+L<http://www.pagesjaunes.fr/pj.cgi?html-=commun/avertissement.html&lang=en>
 
 This script is Copyright (C) 2002, Briac Pilpré
 
-This script is free software; you can redistribute it or modify it under the
-same terms as Perl itself.
+This script is free software; you can redistribute it or modify it under
+the same terms as Perl itself.
 
 =head1 AUTHOR
 
