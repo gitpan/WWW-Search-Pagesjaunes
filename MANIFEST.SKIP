@@ -5,6 +5,7 @@ CVS/.*
 \.tgz$
 \.tar\.gz$
 ^mess/
+^dist/
 ^tmp/
 ^blib/
 ^Makefile$

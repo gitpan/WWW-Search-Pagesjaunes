@@ -2,50 +2,123 @@
 use strict;
 use WWW::Search::Pagesjaunes;
 use Getopt::Long;
+use Pod::Usage;
 
 my %opt;
 GetOptions(
-    \%opt,        'activite=s',  'nom=s',         'prenom:s',
-    'adresse:s',  'localite=s',  'departement:s', 'business=s',
-    'name=s',     'firstname:s', 'address:s',     'town=s',
-    'district:s', 'help'
-);
-
-#print "$_\t=>\t$opt{$_}\n" for keys %opt;
-
-if (
-    $opt{help}
-    || !( 
-		 ( $opt{business} || $opt{activite} || $opt{nom} || $opt{name} )
-         && 
-		 ( $opt{town} || $opt{localite} ) 
-	   )
+    \%opt,                    'activite|business|activity=s',
+    'nom|name=s',             'prenom|firstname:s',
+    'adresse|address:s',      'localite|town=s',
+    'departement|district=s', 'limit:i',
+    'help|aide',              'man',
+    'version'
   )
-{
-    die <<"_USAGE_"
-WWW::Search::Pagesjaunes v.$WWW::Search::Pagesjaunes::VERSION
-usage: $0 [options...] [-h]
+  or pod2usage(2);
+
+die "$WWW::Search::Pagesjaunes::VERSION\n" if $opt{version};
+
+pod2usage(1) if $opt{help};
+pod2usage( -verbose => 2 ) if $opt{man};
+pod2usage("$0: No town given.") unless $opt{localite};
+pod2usage("$0: No business or name given.")
+  unless ( $opt{activite} || $opt{nom} );
+
+my $pj = WWW::Search::Pagesjaunes->new()->find(%opt);
+do {
+    print $_->entry . "\n" foreach ( $pj->results );
+} while $pj->has_more;
+
+__END__
+
+=head1 NAME
+
+pagesjaunes - Lookup phones numbers from www.pagesjaunes.fr
+
+=head1 SYNOPSIS
+
+pagesjaunes [options ...]
+
+ Options:
+    -activite    -business  : Business type
+    -nom         -name      : Name
+    -prenom      -firstname : First name
+    -localite    -town      : Town
+    -departement -district  : Dept district or Region
+
+    -limit    : Maximum number of results returned
+    -help     : Brief help message
+    -man      : Full documentation
+    -version  : Display version number
 
 You must provide the localite/town option, and either activite/business
 or nom/name option. The prenom/firstname option is ignored if the
 localite/town option is set.
 
-Options:
-    --activite    --business  -a : Business type
-    --nom         --name      -n : Name
-    --prenom      --firstname -p : First name
-    --localite    --town      -t : Town
-    --departement --district  -d : Dept district or Region
+=head1 OPTIONS
 
-    --help                    -h : Help
-_USAGE_
-}
+=over 8
 
-my $pj = WWW::Search::Pagesjaunes->new();
-$pj->find(%opt);
+=item B<-activite> or B<-business>
 
-MORE: {
-    print $_->entry . "\n" foreach ( $pj->results );
-    redo MORE if $pj->has_more;
-}
+Activity or business type you're looking for. This is a mandatory switch
+if you don't specify the B<-name> or B<-nom> switches.
+
+=item B<-nom> or B<-name>
+
+Name of the person or company you're looking for. Note that the search
+is done with a fuzzy match.
+
+=item B<-prenom> or B<-firstname>
+
+First name of the person you're looking for. This option is ignored if
+the B<-activite> or B<-business> are set.
+
+=item B<-localite> or B<-town>
+
+Name of the town.
+
+=item B<-department> or B<-district>
+
+Department district or Region you're searching in.
+
+=item B<-limit>
+
+Maximum number of entries returned. Default is 50. If you set it to 0 or
+a negative number, it will return all the entries found.
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-man>
+
+Prints the manual page and exits.
+
+=item B<-version>
+
+Prints the version of the script and exits.
+
+=back
+
+=head1 DESCRIPTION
+
+This script provides name, phone number and addresses of French
+telephone subscribers by using the http://www.pagesjaunes.fr directory
+and the WWW::Search::Pagesjaunes module.
+
+=head1 COPYRIGHT
+
+Please read the Publisher information of L<http://www.pagesjaunes.fr>
+available at the following URL: L<http://www.pagesjaunes.fr/pj.cgi?html-=commun/avertissement.html&lang=en>
+
+This script is Copyright (C) 2002, Briac Pilpré
+
+This script is free software; you can redistribute it or modify it under the
+same terms as Perl itself.
+
+=head1 AUTHOR
+
+Briac Pilpré <briac@cpan.org>
+
+=cut
 

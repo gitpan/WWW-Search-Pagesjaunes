@@ -1,3 +1,9 @@
+0.3 Tue Oct 15 13:11:09 CEST 2002
+    - Fixed a bug that prevented limit() to work
+    - Added a --limit switch on the pagesjaunes script
+    - pagesjaunes is better documented, using Pod::Usage
+    - Changed the english switches to aliases, much cleaner
+
 0.2 Tue Oct 15 10:29:35 CEST 2002
     - Added usage for the pagesjaunes script
     - Added support for english options

@@ -5,7 +5,7 @@ use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.02';
+$WWW::Search::Pagesjaunes::VERSION = '0.03';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -28,19 +28,6 @@ sub new {
 sub find {
     my $self = shift;
     my %opt  = @_;
-    # Translate english keys back to french
-    my %translate = (
-        business  => 'activite',
-        name      => 'nom',
-        firstname => 'prenom',
-        address   => 'adress',
-        town      => 'localite',
-        district  => 'departement',
-    );
-	for ( keys %translate ){
-		$opt{ $translate{$_} } = $opt{$_} if exists $opt{$_};
-	}
-	delete @opt{keys %translate};
 
 	# Make the first request to pagesjaunes.fr
     return undef unless $opt{localite} && ( $opt{activite} || $opt{nom} );
@@ -116,14 +103,15 @@ sub results {
             my $phone = $parser->get_trimmed_text('/td');
             $phone =~ s/^\W*|\W*$//g;
 
-            last if $self->{limit}-- == 0;
 
             push (
                 @results,
                 WWW::Search::Pagesjaunes::Entry->new(
                     $name, $address, $phone, 0
                 )
-              )
+              );
+
+            return @results if --$self->{limit} == 0;
         }
     }
 
@@ -170,10 +158,9 @@ WWW::Search::Pagesjaunes - Lookup phones numbers from www.pagesjaunes.fr
  my $pj = new WWW::Search::Pagesjaunes;
  $pj->find( activite => "Plombier", localite => "Paris" );
 
- {
+ do {
     print $_->entry . "\n" foreach ($pj->results);
-    redo if $pj->has_more;
- }
+ } while $pj->has_more;
 
 =head1 DESCRIPTION
 
@@ -298,7 +285,7 @@ same terms as Perl itself.
 
 =head1 AUTHOR
 
-Briac Pilpré L<briac@cpan.org>
+Briac Pilpré <briac@cpan.org>
 
 =cut
 
