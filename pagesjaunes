@@ -4,14 +4,48 @@ use WWW::Search::Pagesjaunes;
 use Getopt::Long;
 
 my %opt;
-GetOptions( \%opt, 'activite=s', 'nom=s', 'prenom:s', 'adresse:s', 'localite=s', 'departement:s' );
+GetOptions(
+    \%opt,        'activite=s',  'nom=s',         'prenom:s',
+    'adresse:s',  'localite=s',  'departement:s', 'business=s',
+    'name=s',     'firstname:s', 'address:s',     'town=s',
+    'district:s', 'help'
+);
+
+#print "$_\t=>\t$opt{$_}\n" for keys %opt;
+
+if (
+    $opt{help}
+    || !( 
+		 ( $opt{business} || $opt{activite} || $opt{nom} || $opt{name} )
+         && 
+		 ( $opt{town} || $opt{localite} ) 
+	   )
+  )
+{
+    die <<"_USAGE_"
+WWW::Search::Pagesjaunes v.$WWW::Search::Pagesjaunes::VERSION
+usage: $0 [options...] [-h]
+
+You must provide the localite/town option, and either activite/business
+or nom/name option. The prenom/firstname option is ignored if the
+localite/town option is set.
+
+Options:
+    --activite    --business  -a : Business type
+    --nom         --name      -n : Name
+    --prenom      --firstname -p : First name
+    --localite    --town      -t : Town
+    --departement --district  -d : Dept district or Region
+
+    --help                    -h : Help
+_USAGE_
+}
 
 my $pj = WWW::Search::Pagesjaunes->new();
 $pj->find(%opt);
 
-MORE:{
-	print $_->entry . "\n" foreach ($pj->results);
-	redo MORE if $pj->has_more;
+MORE: {
+    print $_->entry . "\n" foreach ( $pj->results );
+    redo MORE if $pj->has_more;
 }
-
 

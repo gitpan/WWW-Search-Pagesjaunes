@@ -5,7 +5,7 @@ use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.01';
+$WWW::Search::Pagesjaunes::VERSION = '0.02';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -17,8 +17,10 @@ sub new {
         keep_alive => 1,
         timeout    => 30,
     );
-    $ua->agent( "WWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION " . $ua->agent );
-    $self->{ua} = $ua;
+    $ua->agent( "WWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION "
+          . $ua->agent );
+    $self->{ua}    = $ua;
+    $self->{limit} = 50;
 
     bless( $self, $class );
 }
@@ -26,6 +28,21 @@ sub new {
 sub find {
     my $self = shift;
     my %opt  = @_;
+    # Translate english keys back to french
+    my %translate = (
+        business  => 'activite',
+        name      => 'nom',
+        firstname => 'prenom',
+        address   => 'adress',
+        town      => 'localite',
+        district  => 'departement',
+    );
+	for ( keys %translate ){
+		$opt{ $translate{$_} } = $opt{$_} if exists $opt{$_};
+	}
+	delete @opt{keys %translate};
+
+	# Make the first request to pagesjaunes.fr
     return undef unless $opt{localite} && ( $opt{activite} || $opt{nom} );
     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
 
@@ -42,7 +59,7 @@ sub find {
     $form->value( 'FRM_LOCALITE', $opt{localite} );
     $form->value( 'FRM_DEPARTEMENT', $opt{departement} );
 
-    $self->{limit} = $opt{limit} || 10;
+    $self->{limit} = $opt{limit} || $self->{limit};
 
     $self->{req} = $form->click;
 
@@ -57,10 +74,10 @@ sub results {
 
     my @results;
 
-	if ( $self->{limit} <= 0 ){
-		$self->{has_more} = 0;
-		return @results;
-	}
+    if ( $self->{limit} == 0 ) {
+        $self->{has_more} = 0;
+        return @results;
+    }
 
     # XXX This is a really crude parsing of the data, but it seems to
     # get the job done.
@@ -99,13 +116,16 @@ sub results {
             my $phone = $parser->get_trimmed_text('/td');
             $phone =~ s/^\W*|\W*$//g;
 
-			last if $self->{limit}-- == 0;
+            last if $self->{limit}-- == 0;
 
-            push ( @results,
-                WWW::Search::Pagesjaunes::Entry->new( $name, $address, $phone, 0 ) )
+            push (
+                @results,
+                WWW::Search::Pagesjaunes::Entry->new(
+                    $name, $address, $phone, 0
+                )
+              )
         }
     }
-
 
     foreach my $form ( HTML::Form->parse( $result_page, $self->{URL} ) ) {
         if (   $form->find_input('faire')
@@ -116,6 +136,11 @@ sub results {
         }
     }
     wantarray ? @results : $results[0];
+}
+
+sub limit {
+	my $self = shift;
+	$self->{limit} = $_[0] || $self->{limit};
 }
 
 sub has_more { $_[0]->{has_more} }
@@ -173,31 +198,33 @@ provide your own.
 
 =item find( %request )
 
-Here are the values for the %request hash that are understood:
+Here are the values for the %request hash that are understood. They
+each have two name, the first is the french one and the second is the
+english one:
 
 =over 4
 
-=item nom
+=item nom / name
 
 Name of the person you're looking for.
 
-=item activite
+=item activite / business
 
-Professional activity of the company you're looking for. Note that if this
+Business type of the company you're looking for. Note that if this
 field is filled, the module searches in the yellow pages.
 
-=item localite
+=item localite / town
 
 Name of the town you're searching in.
 
-=item prenom
+=item prenom / firstname
 
 First name of the person you're looking for. It is not set if you set the
 'activite' field.
 
-=item departement
+=item departement / district
 
-Name or number of the Département you're searching in.
+Name or number of the Département or Région you're searching in.
 
 =back
 
@@ -206,6 +233,10 @@ Name or number of the Département you're searching in.
 Returns an array of WWW::Search::Pagesjaunes::Entry containing the first matches of the
 query.
 
+=item limit($max_number_of_entries)
+
+Set the maximum number of entries returned. Default to 50.
+
 =item has_more()
 
 If the query leads to more than a few results, the field has_more is set. You
@@ -213,7 +244,7 @@ can then call the results() method again to fetch the datas.
 
 =back
 
-The WWW::Search::Pagesjaunes::Entry class has four methods:
+The WWW::Search::Pagesjaunes::Entry class has six methods:
 
 =over 4
 
@@ -235,7 +266,8 @@ Returns the phone number of the entry.
 
 =item is_fax
 
-Returns true if the phone number is a fax one, false otherwise.
+Returns true if the phone number is a fax one, false otherwise. Note
+that currently, this method always returns 0.
 
 =item entry
 
@@ -248,10 +280,16 @@ Returns the concatenation of the name and the phone number, separated by " - ".
 The phone numbers are sometimes not correctly parsed, esp. when one
 entry has several phone numbers.
 
+Names are sometimes truncated.
+
+If you found a bug and want to report it or send a patch, you are
+encouraged to use the CPAN Request Tracker interface:
+L<https://rt.cpan.org/NoAuth/Dists.html?Queue=WWW-Search-Pagesjaunes>
+
 =head1 COPYRIGHT
 
 Please read the Publisher information of L<http://www.pagesjaunes.fr> available at the following URL:
-http://www.pagesjaunes.fr/pj.cgi?html=commun/avertissement.html&lang=en
+L<http://www.pagesjaunes.fr/pj.cgi?html=commun/avertissement.html&lang=en>
 
 WWW::Search::Pagesjaunes is Copyright (C) 2002, Briac Pilpré
 
@@ -263,4 +301,5 @@ same terms as Perl itself.
 Briac Pilpré L<briac@cpan.org>
 
 =cut
+
 

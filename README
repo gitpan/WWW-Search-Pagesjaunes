@@ -30,35 +30,40 @@ METHODS
         you want to provide your own.
 
     find( %request )
-        Here are the values for the %request hash that are understood:
+        Here are the values for the %request hash that are understood. They
+        each have two name, the first is the french one and the second is
+        the english one:
 
-        nom Name of the person you're looking for.
+        nom / name
+            Name of the person you're looking for.
 
-        activite
-            Professional activity of the company you're looking for. Note
-            that if this field is filled, the module searches in the yellow
-            pages.
+        activite / business
+            Business type of the company you're looking for. Note that if
+            this field is filled, the module searches in the yellow pages.
 
-        localite
+        localite / town
             Name of the town you're searching in.
 
-        prenom
+        prenom / firstname
             First name of the person you're looking for. It is not set if
             you set the 'activite' field.
 
-        departement
-            Name or number of the Département you're searching in.
+        departement / district
+            Name or number of the Département or Région you're searching in.
 
     results()
         Returns an array of WWW::Search::Pagesjaunes::Entry containing the
         first matches of the query.
+
+    limit($max_number_of_entries)
+        Set the maximum number of entries returned. Default to 50.
 
     has_more()
         If the query leads to more than a few results, the field has_more is
         set. You can then call the results() method again to fetch the
         datas.
 
-    The WWW::Search::Pagesjaunes::Entry class has four methods:
+    The WWW::Search::Pagesjaunes::Entry class has six methods:
 
     new($name, $address, $phone, $fax)
         Returns a new WWW::Search::Pagesjaunes::Entry.
@@ -73,7 +78,8 @@ METHODS
         Returns the phone number of the entry.
 
     is_fax
-        Returns true if the phone number is a fax one, false otherwise.
+        Returns true if the phone number is a fax one, false otherwise. Note
+        that currently, this method always returns 0.
 
     entry
         Returns the concatenation of the name and the phone number,
@@ -83,10 +89,17 @@ BUGS
     The phone numbers are sometimes not correctly parsed, esp. when one
     entry has several phone numbers.
 
+    Names are sometimes truncated.
+
+    If you found a bug and want to report it or send a patch, you are
+    encouraged to use the CPAN Request Tracker interface:
+    <https://rt.cpan.org/NoAuth/Dists.html?Queue=WWW-Search-Pagesjaunes>
+
 COPYRIGHT
     Please read the Publisher information of <http://www.pagesjaunes.fr>
     available at the following URL:
-    http://www.pagesjaunes.fr/pj.cgi?html=commun/avertissement.html&lang=en
+    <http://www.pagesjaunes.fr/pj.cgi?html=commun/avertissement.html&lang=en
+    >
 
     WWW::Search::Pagesjaunes is Copyright (C) 2002, Briac Pilpré
 
