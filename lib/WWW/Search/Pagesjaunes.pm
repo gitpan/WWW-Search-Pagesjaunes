@@ -4,9 +4,10 @@ use Carp qw(carp croak);
 use HTML::Form;
 use WWW::Mechanize;
 use HTML::TokeParser;
+use HTTP::Request::Common;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.10';
+$WWW::Search::Pagesjaunes::VERSION = '0.11';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -22,7 +23,7 @@ sub new {
 
     $self->{ua}    = $ua;
     $self->{limit} = 50;
-
+    $self->{fast}  = 0;
     $self->{error} = 1;
     $self->{lang}  = 'FR';
 
@@ -45,36 +46,62 @@ sub find {
     my $self = shift;
     my %opt  = @_;
 
+    my $p = $opt{activite} ? 'j' : 'b';
+
     # Make the first request to pagesjaunes.fr
-    $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
+    $self->{URL} = ROOT_URL . "/p$p.cgi";
 
-    my $req = $self->{ua}->get($self->{URL});
 
-    if ( !$req->content || !$req->is_success ) {
-        croak('Error while retrieving the HTML page');
+    if ( $self->{fast} ) {
+        $self->{req} = POST(
+            $self->{URL},
+            [
+                faire           => 'decode_input_image',
+                DEFAULT_ACTION  => $p . 'f_inscriptions_req',
+                lang            => $self->{lang},
+                pays            => 'FR',
+                srv             => uc("p$p"),
+                TYPE_RECHERCHE  => 'ZZZ',
+                input_image     => '',
+                FRM_ACTIVITE    => $p eq 'j' ? $opt{activite} : undef,
+                FRM_NOM         => $opt{nom},
+                FRM_PRENOM      => $p eq 'b' ? $opt{prenom}   : undef,
+                FRM_ADRESSE     => $opt{adresse},
+                FRM_LOCALITE    => $opt{localite},
+                FRM_DEPARTEMENT => $opt{departement},
+                #'${p}F_INSCRIPTIONS_REQ.x' => 1,
+                #'${p}F_INSCRIPTIONS_REQ.y' => 1,
+            ]);
     }
+    else {
+        my $req = $self->{ua}->get($self->{URL});
 
-    my @forms = HTML::Form->parse( $req->content, $self->{URL} );
+        if ( !$req->content || !$req->is_success ) {
+            croak('Error while retrieving the HTML page');
+        }
 
-    #my $form = $opt{activite} ? $forms[1] : $forms[0];
-    my $form = $forms[0];
+        my @forms = HTML::Form->parse( $req->content, $self->{URL} );
 
-    {
-        # HTML::Form complains when you change hidden fields values.
-        local $^W;
-        $form->value( 'lang', $self->{lang} );
+        #my $form = $opt{activite} ? $forms[1] : $forms[0];
+        my $form = $forms[0];
+
+        {
+            # HTML::Form complains when you change hidden fields values.
+            local $^W;
+            $form->value( 'lang', $self->{lang} );
+        }
+
+        $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
+        $form->value( 'FRM_NOM',      $opt{nom} );
+        $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
+        $form->value( 'FRM_ADRESSE',  $opt{adresse} );
+        $form->value( 'FRM_LOCALITE', $opt{localite} );
+        $form->value( 'FRM_DEPARTEMENT', $opt{departement} );
+
+        $self->{limit} = $opt{limit} || $self->{limit};
+
+        $self->{req} = $form->click;
     }
-
-    $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
-    $form->value( 'FRM_NOM',      $opt{nom} );
-    $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
-    $form->value( 'FRM_ADRESSE',  $opt{adresse} );
-    $form->value( 'FRM_LOCALITE', $opt{localite} );
-    $form->value( 'FRM_DEPARTEMENT', $opt{departement} );
-
-    $self->{limit} = $opt{limit} || $self->{limit};
-
-    $self->{req} = $form->click;
 
     return $self;
 }
@@ -83,11 +110,13 @@ sub results {
     my $self = shift;
 
     my $result_page = $self->{ua}->request( $self->{req} )->content;
+
     my $parser      = HTML::TokeParser->new( \$result_page );
 
-    # All the <br> tags are transformed to whitespace
+    # All the <br> tags are transformed to '§¤§', to separate
+    # multiple phone numbers
     $parser->{textify} = {
-        'br' => sub() { " " }
+        'br' => sub() { '§¤§' }
     };
 
     my @results;
@@ -127,16 +156,25 @@ sub results {
 
             $parser->get_tag("td");    # The second <td> is the address
             my $address = _trim( $parser->get_trimmed_text('/td') );
-            $address =~ s/\W*\|.*$//;
+            $address =~ s/\W*\|.*$//g;
 
             $parser->get_tag("td");    # The third <td> is the phone number
             my $phone = _trim( $parser->get_trimmed_text('/td') );
-            $phone =~ s/^\W(.*)$/$1/g;
+            my @phones = map { _trim($_); s/\.(\s*\d)/$1/; $_ }  split(/§¤§/, $phone);
+
+            # The third <td> tag is either the mail or the descr, depending
+            # on the class
+            my @emails = ('');
+            my $tag = $parser->get_tag("td");
+            if ( $tag->[1]{class} && $tag->[1]{class} eq 'txtinscr'){
+               my $email  = _trim( $parser->get_trimmed_text('/td') );
+               @emails = map { _trim($_); s/Mail\s*:\s*//; $_ }  split(/§¤§/, $email);
+            }
 
             push(
                 @results,
                 WWW::Search::Pagesjaunes::Entry->new(
-                    $name, $address, $phone, 0
+                    $name, $address, [ @phones ], [ @emails ]
                 )
             );
 
@@ -164,7 +202,7 @@ sub results {
             $parser->{textify} = {
                 'br' => sub() { " " }
             };
-            print STDERR _trim( $parser->get_trimmed_text('/font') ) . "\n";
+            carp _trim( $parser->get_trimmed_text('/font') ) . "\n";
         }
     }
 
@@ -174,6 +212,7 @@ sub results {
 sub _trim {
     $_[0] =~ s/\xa0/ /g;       # Transform the &nbsp; into whitespace
     $_[0] =~ s/^\s*|\s*$//g;
+    $_[0] =~ s/\s+/ /g;
     $_[0];
 }
 
@@ -185,12 +224,26 @@ sub limit {
 sub has_more { $_[0]->{has_more} }
 
 package WWW::Search::Pagesjaunes::Entry;
-sub new { bless [ $_[1], $_[2], $_[3], $_[4] ], $_[0] }
+
+# The entry object is a blessed array with the following indices:
+# 0 - Name
+# 1 - Address
+# 2 - Arrayref of phone numbers
+# 3 - E-mail (pj)
+# 4 - Notes  (pj)
+
+sub new     {
+    my $class = shift;
+    bless [ @_ ], $class
+}
 sub name    { $_[0]->[0] }
 sub address { $_[0]->[1] }
 sub phone   { $_[0]->[2] }
-sub is_fax  { $_[0]->[3] }
-sub entry   { @{ $_[0] }[ 0 .. 2 ] }
+sub email   { $_[0]->[3] }
+sub entry   {
+    # Name      Address     First email      Phones
+    $_[0]->[0], $_[0]->[1], $_[0]->[3]->[0], @{ @{ $_[0] }[2] },
+}
 
 1;
 

@@ -11,7 +11,7 @@ GetOptions(
     'adresse|address:s',      'localite|ville|city|town=s',
     'departement|district=s', 'limit:i', 'english', 'quiet',
     'help|aide',              'man', 'separator|separateur=s',
-    'useragent=s',            'version'
+    'useragent=s',            'version', 'fast'
   )
   or pod2usage(2);
 
@@ -37,6 +37,7 @@ my $pj = WWW::Search::Pagesjaunes->new();
 
 $pj->{lang}  = 'EN' if $opt{english};
 $pj->{error} = 0    if $opt{quiet};
+$pj->{fast}  = 1    if $opt{fast};
 
 $pj->{ua}->agent($opt{useragent}) if $opt{useragent};
 
@@ -44,7 +45,7 @@ $pj->find(%opt);
 
 do {
 	local $\ = "\n";
-	print join($opt{separator} || ' - ', $_->entry) foreach ( $pj->results );
+	print join($opt{separator} || "\t", $_->entry) foreach ( $pj->results );
 } while $pj->has_more;
 
 __END__
@@ -65,8 +66,9 @@ pagesjaunes [options ...]
     -departement -district  : Dept district or Region
 
     -useragent : String to be passed as User-Agent header
+    -fast      : Submit the request directly without querying the form
     
-    -separator : Character used to separate the fields (default ' - ')
+    -separator : Character used to separate the fields (default '\t')
     -limit     : Maximum number of results returned
     -english   : Use the pagesjaunes.fr english interface
     -quiet     : Turn off error messages display

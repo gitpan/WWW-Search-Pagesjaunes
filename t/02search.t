@@ -11,7 +11,7 @@ my $r = $pj->results;
 
 ok($r->name,    "Présidence de la République Palais de l'Elysée");
 ok($r->address, "55 e Fbg St Honoré 75008 Paris");
-ok($r->phone,   "01 42 92 81 00");
+ok($r->phone->[0],   "01 42 92 81 00");
 ok($pj->has_more, 1);
 
 
