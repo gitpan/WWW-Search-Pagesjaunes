@@ -1,0 +1,17 @@
+#!/usr/bin/perl -w
+use strict;
+use WWW::Search::Pagesjaunes;
+use Getopt::Long;
+
+my %opt;
+GetOptions( \%opt, 'activite=s', 'nom=s', 'prenom:s', 'adresse:s', 'localite=s', 'departement:s' );
+
+my $pj = WWW::Search::Pagesjaunes->new();
+$pj->find(%opt);
+
+MORE:{
+	print $_->entry . "\n" foreach ($pj->results);
+	redo MORE if $pj->has_more;
+}
+
+

@@ -1,0 +1,10 @@
+Changes
+lib/WWW/Search/Pagesjaunes.pm
+Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+pagesjaunes
+README
+t/00basic.t
+t/02search.t
+t/01interface.t
