@@ -1,10 +1,10 @@
 Changes
-lib/WWW/Search/Pagesjaunes.pm
+MANIFEST			This list of files
 Makefile.PL
-MANIFEST
-MANIFEST.SKIP
-pagesjaunes
+Pagesjaunes.pm.diff
 README
+lib/WWW/Search/Pagesjaunes.pm
+pagesjaunes
 t/00basic.t
-t/02search.t
 t/01interface.t
+t/02search.t

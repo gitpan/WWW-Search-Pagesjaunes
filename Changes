@@ -1,3 +1,8 @@
+0.8 Wed Jan  7 16:29:09 CET 2004
+    - Fixed the HTML parsing again.
+    - Modified the user-agent string as pagejaunes.fr seems to be blocking
+    user agent matching /WWW::Search::Pagesjaunes/
+
 0.7 Tue Dec  9 10:46:28 CET 2003
     - Fixed the HTML parsing to reflect the changes in the
       pagesjaunes.fr website. (Thanks to David Landgren)

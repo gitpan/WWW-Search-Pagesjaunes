@@ -1,25 +1,26 @@
 package WWW::Search::Pagesjaunes;
 use strict;
-#use Carp qw(carp);
-#use locale;
+use Carp qw(carp croak);
 use HTML::Form;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.07';
+$WWW::Search::Pagesjaunes::VERSION = '0.08';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
 sub new {
     my $class = shift;
     my $self  = {};
-    my $ua    = shift () || LWP::UserAgent->new(
+    my $ua    = shift() || LWP::UserAgent->new(
         env_proxy  => 1,
         keep_alive => 1,
         timeout    => 30,
     );
-    $ua->agent( "WWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION "
+
+    $ua->agent( "WWW::Search::Pagesjaunes-X/$WWW::Search::Pagesjaunes::VERSION "
           . $ua->agent );
+
     $self->{ua}    = $ua;
     $self->{limit} = 50;
 
@@ -33,23 +34,28 @@ sub find {
     my $self = shift;
     my %opt  = @_;
 
-	# Make the first request to pagesjaunes.fr
+    # Make the first request to pagesjaunes.fr
     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
 
-    my @forms = HTML::Form->parse(
-        $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) )
-          ->content,
-        $self->{URL}
-    );
+    my $req = $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) );
 
-    my $form = $opt{activite} ? $forms[1] : $forms[0];
+    $DB::single = 1;
+    if ( !$req->content || !$req->is_success ) {
+        croak('Error while retrieving the HTML page');
+    }
 
-	{
-		# HTML::Form complains when you change hidden fields values.
-		local $^W;
-    	$form->value( 'lang', $self->{lang} );
-	}
-	
+    my @forms = HTML::Form->parse( $req->content, $self->{URL} );
+
+    #my $form = $opt{activite} ? $forms[1] : $forms[0];
+    my $form = $forms[0];
+
+    {
+
+        # HTML::Form complains when you change hidden fields values.
+        local $^W;
+        $form->value( 'lang', $self->{lang} );
+    }
+
     $form->value( 'FRM_ACTIVITE', $opt{activite} ) if $opt{activite};
     $form->value( 'FRM_NOM',      $opt{nom} );
     $form->value( 'FRM_PRENOM',   $opt{prenom} )   if !$opt{activite};
@@ -71,7 +77,9 @@ sub results {
     my $parser      = HTML::TokeParser->new( \$result_page );
 
     # All the <br> tags are transformed to whitespace
-	$parser->{textify} = { 'br' => sub() { " " } };
+    $parser->{textify} = {
+        'br' => sub() { " " }
+    };
 
     my @results;
 
@@ -82,7 +90,7 @@ sub results {
 
     # XXX This is a really crude parsing of the data, but it seems to
     # get the job done.
-    # 
+    #
     # <table class="fdcadreinscr">
     #   <table class="fdinscr">
     #     <tr class="fdrsinscr">
@@ -95,7 +103,7 @@ sub results {
     #     </tr>
     #   </table>
     # </table>
-    # 
+    #
     $self->{has_more} = 0;
 
     while ( my $token = $parser->get_tag("table") ) {
@@ -116,12 +124,12 @@ sub results {
             my $phone = _trim( $parser->get_trimmed_text('/td') );
             $phone =~ s/^\W(.*)$/$1/g;
 
-            push (
+            push(
                 @results,
                 WWW::Search::Pagesjaunes::Entry->new(
                     $name, $address, $phone, 0
                 )
-              );
+            );
 
             return @results if --$self->{limit} == 0;
         }
@@ -136,30 +144,33 @@ sub results {
         }
     }
 
-	# If there was no result, we look for an error message in the HTML page
-	if ( !@results && $self->{error} ){
-    	$parser  = HTML::TokeParser->new( \$result_page );
-        while ( my $token = $parser->get_tag("font") ){
-        	next unless $token->[1]
-	                 && $token->[1]{color}
- 	                 && $token->[1]{color} eq '#ff0000';
-			$parser->{textify} = { 'br' => sub() { " " } };
-			print STDERR  _trim($parser->get_trimmed_text('/font')) . "\n";
-		}
-	}
+    # If there was no result, we look for an error message in the HTML page
+    if ( !@results && $self->{error} ) {
+        $parser = HTML::TokeParser->new( \$result_page );
+        while ( my $token = $parser->get_tag("font") ) {
+            next
+              unless $token->[1]
+              && $token->[1]{color}
+              && $token->[1]{color} eq '#ff0000';
+            $parser->{textify} = {
+                'br' => sub() { " " }
+            };
+            print STDERR _trim( $parser->get_trimmed_text('/font') ) . "\n";
+        }
+    }
 
     wantarray ? @results : $results[0];
 }
 
 sub _trim {
-	$_[0] =~ s/\xa0/ /g; # Transform the &nbsp; into whitespace
-	$_[0] =~ s/^\s*|\s*$//g;
-	$_[0];
+    $_[0] =~ s/\xa0/ /g;       # Transform the &nbsp; into whitespace
+    $_[0] =~ s/^\s*|\s*$//g;
+    $_[0];
 }
 
 sub limit {
-	my $self = shift;
-	$self->{limit} = $_[0] || $self->{limit};
+    my $self = shift;
+    $self->{limit} = $_[0] || $self->{limit};
 }
 
 sub has_more { $_[0]->{has_more} }

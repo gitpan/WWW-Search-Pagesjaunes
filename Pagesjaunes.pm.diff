@@ -1,0 +1,104 @@
+--- /usr/lib/perl5/site_perl/5.8.0/WWW/Search/Pagesjaunes.pm	2003-12-05 20:00:45.000000000 +0100
++++ lib/WWW/Search/Pagesjaunes.pm	2004-01-05 16:30:31.000000000 +0100
+@@ -1,25 +1,26 @@
+ package WWW::Search::Pagesjaunes;
+ use strict;
+-#use Carp qw(carp);
+-#use locale;
++use Carp qw(carp croak);
+ use HTML::Form;
+ use HTML::TokeParser;
+ use LWP::UserAgent;
+ 
+-$WWW::Search::Pagesjaunes::VERSION = '0.07';
++$WWW::Search::Pagesjaunes::VERSION = '0.08_01';
+ 
+ sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
+ 
+ sub new {
+     my $class = shift;
+     my $self  = {};
+-    my $ua    = shift () || LWP::UserAgent->new(
++    my $ua    = shift() || LWP::UserAgent->new(
+         env_proxy  => 1,
+         keep_alive => 1,
+         timeout    => 30,
+     );
+-    $ua->agent( "WWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION "
++
++    $ua->agent( "WXWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION "
+           . $ua->agent );
++
+     $self->{ua}    = $ua;
+     $self->{limit} = 50;
+ 
+@@ -36,15 +37,20 @@
+ 	# Make the first request to pagesjaunes.fr
+     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
+ 
+-    my @forms = HTML::Form->parse(
+-        $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) )
+-          ->content,
+-        $self->{URL}
+-    );
++    my $req = $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) );
++
++    $DB::single = 1;
++    if ( !$req->content || !$req->is_success ) {
++        croak('Error while retrieving the HTML page');
++    }
+ 
+-    my $form = $opt{activite} ? $forms[1] : $forms[0];
++    my @forms = HTML::Form->parse( $req->content, $self->{URL} );
++
++    #my $form = $opt{activite} ? $forms[1] : $forms[0];
++    my $form = $forms[0];
+ 
+ 	{
++
+ 		# HTML::Form complains when you change hidden fields values.
+ 		local $^W;
+     	$form->value( 'lang', $self->{lang} );
+@@ -71,7 +77,9 @@
+     my $parser      = HTML::TokeParser->new( \$result_page );
+ 
+     # All the <br> tags are transformed to whitespace
+-	$parser->{textify} = { 'br' => sub() { " " } };
++    $parser->{textify} = {
++        'br' => sub() { " " }
++    };
+ 
+     my @results;
+ 
+@@ -116,7 +124,7 @@
+             my $phone = _trim( $parser->get_trimmed_text('/td') );
+             $phone =~ s/^\W(.*)$/$1/g;
+ 
+-            push (
++            push(
+                 @results,
+                 WWW::Search::Pagesjaunes::Entry->new(
+                     $name, $address, $phone, 0
+@@ -137,14 +145,17 @@
+     }
+ 
+ 	# If there was no result, we look for an error message in the HTML page
+-	if ( !@results && $self->{error} ){
++    if ( !@results && $self->{error} ) {
+     	$parser  = HTML::TokeParser->new( \$result_page );
+-        while ( my $token = $parser->get_tag("font") ){
+-        	next unless $token->[1]
++        while ( my $token = $parser->get_tag("font") ) {
++            next
++              unless $token->[1]
+ 	                 && $token->[1]{color}
+  	                 && $token->[1]{color} eq '#ff0000';
+-			$parser->{textify} = { 'br' => sub() { " " } };
+-			print STDERR  _trim($parser->get_trimmed_text('/font')) . "\n";
++            $parser->{textify} = {
++                'br' => sub() { " " }
++            };
++            print STDERR _trim( $parser->get_trimmed_text('/font') ) . "\n";
+ 		}
+ 	}
+ 
