@@ -2,24 +2,23 @@ package WWW::Search::Pagesjaunes;
 use strict;
 use Carp qw(carp croak);
 use HTML::Form;
+use WWW::Mechanize;
 use HTML::TokeParser;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.08';
+$WWW::Search::Pagesjaunes::VERSION = '0.10';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
 sub new {
     my $class = shift;
     my $self  = {};
-    my $ua    = shift() || LWP::UserAgent->new(
+    my $ua    = shift() || WWW::Mechanize->new(
         env_proxy  => 1,
         keep_alive => 1,
         timeout    => 30,
+        agent      => "WWW::Search::Pagesjaunes/$WWW::Search::Pagesjaunes::VERSION",
     );
-
-    $ua->agent( "WWW::Search::Pagesjaunes-X/$WWW::Search::Pagesjaunes::VERSION "
-          . $ua->agent );
 
     $self->{ua}    = $ua;
     $self->{limit} = 50;
@@ -30,6 +29,18 @@ sub new {
     bless( $self, $class );
 }
 
+sub agent {
+    my $self = shift;
+    if ( $_[0] ) {
+        my $old = $self->{ua};
+        $self->{ua} = $_[0];
+        return $old;
+    }
+    else {
+        return $self->{ua};
+    }
+}
+
 sub find {
     my $self = shift;
     my %opt  = @_;
@@ -37,9 +48,8 @@ sub find {
     # Make the first request to pagesjaunes.fr
     $self->{URL} = ROOT_URL . ( $opt{activite} ? '/pj.cgi' : '/pb.cgi' );
 
-    my $req = $self->{ua}->request( HTTP::Request->new( 'GET', $self->{URL} ) );
+    my $req = $self->{ua}->get($self->{URL});
 
-    $DB::single = 1;
     if ( !$req->content || !$req->is_success ) {
         croak('Error while retrieving the HTML page');
     }
@@ -50,7 +60,6 @@ sub find {
     my $form = $forms[0];
 
     {
-
         # HTML::Form complains when you change hidden fields values.
         local $^W;
         $form->value( 'lang', $self->{lang} );

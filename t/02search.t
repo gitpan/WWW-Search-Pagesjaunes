@@ -3,6 +3,9 @@ BEGIN { plan tests => 5 }
 use WWW::Search::Pagesjaunes;
 
 my $pj = WWW::Search::Pagesjaunes->new();
+
+$pj->{ua}->agent("test".time);
+
 $pj->find( nom => "palais de l'elysée", localite => "paris");
 my $r = $pj->results;
 

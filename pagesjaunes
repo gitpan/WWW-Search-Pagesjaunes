@@ -11,7 +11,7 @@ GetOptions(
     'adresse|address:s',      'localite|ville|city|town=s',
     'departement|district=s', 'limit:i', 'english', 'quiet',
     'help|aide',              'man', 'separator|separateur=s',
-    'version'
+    'useragent=s',            'version'
   )
   or pod2usage(2);
 
@@ -38,6 +38,8 @@ my $pj = WWW::Search::Pagesjaunes->new();
 $pj->{lang}  = 'EN' if $opt{english};
 $pj->{error} = 0    if $opt{quiet};
 
+$pj->{ua}->agent($opt{useragent}) if $opt{useragent};
+
 $pj->find(%opt);
 
 do {
@@ -62,6 +64,8 @@ pagesjaunes [options ...]
     -localite    -town      : Town
     -departement -district  : Dept district or Region
 
+    -useragent : String to be passed as User-Agent header
+    
     -separator : Character used to separate the fields (default ' - ')
     -limit     : Maximum number of results returned
     -english   : Use the pagesjaunes.fr english interface
@@ -104,6 +108,19 @@ Name of the town.
 =item B<-department> or B<-district>
 
 Department district or Region you're searching in.
+
+=item B<-separator>
+
+Character used to separate fields in the result set. 
+Default is a tabulation character.
+
+=item B<-useragent>
+
+The default user-agent string passed to the www.pagesjaunes.fr site
+is ""WWW::Search::Pagesjaunes/x.xx" where x.xx is the version of
+the module.
+
+Sometimes, it is needed to change it to other user-agent strings.
 
 =item B<-limit>
 

@@ -1,7 +1,11 @@
+0.10 Sat Jun 12 21:41:51 CEST 2004
+    - Added a '--useragent' parameter to let the user specify the UserAgent HTTP header.
+    - Added some docs
 0.8 Wed Jan  7 16:29:09 CET 2004
     - Fixed the HTML parsing again.
     - Modified the user-agent string as pagejaunes.fr seems to be blocking
     user agent matching /WWW::Search::Pagesjaunes/
+    (see https://rt.cpan.org/Ticket/Display.html?id=4833 )
 
 0.7 Tue Dec  9 10:46:28 CET 2003
     - Fixed the HTML parsing to reflect the changes in the
