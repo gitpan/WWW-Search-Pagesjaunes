@@ -1,3 +1,8 @@
+0.14 Tue May 24 22:08:13 CEST 2005
+    - Fixed the HTML parsing to reflect the change in the layout of the
+      result table (patch thanks to Yann Gauguet).
+    - Updated the tests
+
 0.13 Thu Feb 24 10:23:28 CET 2005
     - Fixed the HTML parsing to reflect the change in the layout of the
       result table (patch thanks to Éric(glb)).

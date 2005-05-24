@@ -7,7 +7,7 @@ use HTML::TokeParser;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 
-$WWW::Search::Pagesjaunes::VERSION = '0.13';
+$WWW::Search::Pagesjaunes::VERSION = '0.14';
 
 sub ROOT_URL() { 'http://www.pagesjaunes.fr' }
 
@@ -191,8 +191,8 @@ sub results {
     }
 
     foreach my $form ( HTML::Form->parse( $result_page, $self->{URL} ) ) {
-        if (   $form->find_input('faire')
-            && $form->value('faire') eq 'inscriptions_suivant' )
+        if (   $form->find_input('faire') && 
+            $form->value('faire') eq 'decode_input_image' )
         {
             $self->{has_more} = 1;
             $self->{req}      = $form->click();
